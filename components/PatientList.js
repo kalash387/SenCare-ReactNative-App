@@ -20,7 +20,7 @@ export default function PatientList({ navigation }) {
       .then((response) => response.json())
       .then((data) => {
         setPatientsData(data); // Set the fetched data
-        setLoading(false); // Stop loading
+        setLoading(false);
       })
       .catch((error) => {
         console.error("Error fetching data:", error);

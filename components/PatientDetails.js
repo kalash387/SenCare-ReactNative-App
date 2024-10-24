@@ -64,7 +64,7 @@ const ClinicalData = ({ patientId }) => {
       newData.condition
     ) {
       axios
-        .post(`https://api.example.com/patients/${patientId}/clinical-data`, newData)
+        .post(`https://localhost:3000/patients/${patientId}/clinical-data`, newData)
         .then((response) => {
           setClinicalData([...clinicalData, response.data]);
           setNewData({ dateTime: "", testType: "", reading: "", condition: "" });

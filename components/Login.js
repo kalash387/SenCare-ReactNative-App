@@ -66,8 +66,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   logo: {
-    width: 180, // Increased logo size
-    height: 180, // Increased logo size
+    width: 180,
+    height: 180,
     marginTop: 40, // Positioned the logo a little lower
     marginBottom: 10, // Space between the logo and the form
   },
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
     textAlign: "center",
-    marginBottom: 30, // Space between title and input fields
+    marginBottom: 30,
   },
   input: {
     width: "100%",
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
-    marginTop: 20, // Increased space between inputs and button
+    marginTop: 20,
   },
   loginButtonText: {
     color: "#fff",
