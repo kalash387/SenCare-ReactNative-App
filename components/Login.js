@@ -15,7 +15,7 @@ export default function LoginScreen({ navigation }) {
   const handleLogin = () => {
     // Add authentication logic here
     if (username === "test" && password === "test") {
-      navigation.navigate("PatientList"); // Navigate to the patient list screen after login
+      navigation.navigate("PatientList");
     } else {
       alert("Invalid login credentials");
     }

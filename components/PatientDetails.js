@@ -10,8 +10,8 @@ import {
   FlatList,
   Alert,
 } from "react-native";
-import axios from "axios";
 
+// BasicInfo Component
 const BasicInfo = ({ patient }) => (
   <View
     style={[
@@ -22,7 +22,7 @@ const BasicInfo = ({ patient }) => (
     ]}
   >
     <View style={styles.photoContainer}>
-      <Image source={{ uri: patient.photo }} style={styles.photo} />
+    <Image source={require(`../assets/patient1.png`)} style={styles.photo} />
     </View>
     <View style={styles.detailsContainer}>
       <Text style={styles.infoText}>Name: {patient.name}</Text>
@@ -34,49 +34,48 @@ const BasicInfo = ({ patient }) => (
   </View>
 );
 
+// ClinicalData Component
 const ClinicalData = ({ patientId }) => {
   const [clinicalData, setClinicalData] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newData, setNewData] = useState({
-    dateTime: "",
-    testType: "",
-    reading: "",
+    date: "",
+    type: "",
+    value: "",
     condition: "",
   });
 
   useEffect(() => {
-    // Fetch clinical data from an API based on patientId
-    axios
-      .get(`https://localhost:3000/patients/${patientId}/clinical-data`)
-      .then((response) => {
-        setClinicalData(response.data);
+    fetch(`http://192.168.2.18:3000/patients/${patientId}/clinical-data`)
+      .then((response) => response.json())
+      .then((data) => {
+        setClinicalData(data?.data);
       })
-      .catch((error) => {
-        console.error("Error fetching clinical data:", error);
-      });
+      .catch((error) => console.error("Error fetching clinical data:", error));
   }, [patientId]);
 
   const addClinicalData = () => {
-    if (
-      newData.dateTime &&
-      newData.testType &&
-      newData.reading &&
-      newData.condition
-    ) {
-      axios
-        .post(`https://localhost:3000/patients/${patientId}/clinical-data`, newData)
-        .then((response) => {
-          setClinicalData([...clinicalData, response.data]);
-          setNewData({ dateTime: "", testType: "", reading: "", condition: "" });
+    if (newData.date && newData.type && newData.value && newData.condition) {
+  
+      fetch(`http://192.168.2.18:3000/patients/${patientId}/clinical-data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newData),
+      })
+        .then((response) => response.json())
+        .then((data) => {          
+          setClinicalData((prevData) => [...prevData, ...data?.data?.clinicalData]);
+          setNewData({ date: "", type: "", value: "", condition: "" });
           setModalVisible(false);
         })
-        .catch((error) => {
-          console.error("Error adding clinical data:", error);
-        });
+        .catch((error) => console.error("Error adding clinical data:", error));
     } else {
       Alert.alert("Please fill all fields");
     }
   };
+  
 
   return (
     <View style={styles.clinicalDataContainer}>
@@ -92,13 +91,14 @@ const ClinicalData = ({ patientId }) => {
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
           <View style={styles.dataRow}>
-            <Text style={styles.dataText}>{item.dateTime}</Text>
-            <Text style={styles.dataText}>{item.testType}</Text>
-            <Text style={styles.dataText}>{item.reading}</Text>
+            <Text style={styles.dataText}>{item.date}</Text>
+            <Text style={styles.dataText}>{item.type}</Text>
+            <Text style={styles.dataText}>{item.value}</Text>
             <Text style={styles.dataText}>{item.condition}</Text>
           </View>
         )}
       />
+
 
       <TouchableOpacity
         style={styles.addButton}
@@ -117,28 +117,33 @@ const ClinicalData = ({ patientId }) => {
           <Text style={styles.modalTitle}>Add Clinical Data</Text>
           <TextInput
             placeholder="Date/Time"
-            value={newData.dateTime}
-            onChangeText={(text) => setNewData({ ...newData, dateTime: text })}
+            value={newData.date}
+            onChangeText={(text) => setNewData({ ...newData, date: text })}
             style={styles.input}
+            placeholderTextColor="#aaa" // Add this line
           />
           <TextInput
             placeholder="Test Type"
-            value={newData.testType}
-            onChangeText={(text) => setNewData({ ...newData, testType: text })}
+            value={newData.type}
+            onChangeText={(text) => setNewData({ ...newData, type: text })}
             style={styles.input}
+            placeholderTextColor="#aaa" // Add this line
           />
           <TextInput
             placeholder="Reading"
-            value={newData.reading}
-            onChangeText={(text) => setNewData({ ...newData, reading: text })}
+            value={newData.value}
+            onChangeText={(text) => setNewData({ ...newData, value: text })}
             style={styles.input}
+            placeholderTextColor="#aaa" // Add this line
           />
           <TextInput
             placeholder="Condition"
             value={newData.condition}
             onChangeText={(text) => setNewData({ ...newData, condition: text })}
             style={styles.input}
+            placeholderTextColor="#aaa" // Add this line
           />
+
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.submitButton}
@@ -159,21 +164,20 @@ const ClinicalData = ({ patientId }) => {
   );
 };
 
+// PatientDetails Component
 const PatientDetails = ({ route }) => {
   const { patientId } = route.params;
   const [patientData, setPatientData] = useState(null);
 
   useEffect(() => {
-    // Fetch patient data from an API
-    axios
-      .get(`https://localhost:3000/patients/${patientId}`)
-      .then((response) => {
-        setPatientData(response.data);
+    fetch(`http://192.168.2.18:3000/patients/${patientId}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setPatientData(data?.data);
       })
-      .catch((error) => {
-        console.error("Error fetching patient data:", error);
-      });
+      .catch((error) => console.error("Error fetching patient data:", error));
   }, [patientId]);
+  
 
   const [activeTab, setActiveTab] = useState("Basic Info");
 
@@ -185,19 +189,13 @@ const PatientDetails = ({ route }) => {
     <View style={{ flex: 1 }}>
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "Basic Info" && styles.activeTab,
-          ]}
+          style={[styles.tabButton, activeTab === "Basic Info" && styles.activeTab]}
           onPress={() => setActiveTab("Basic Info")}
         >
           <Text style={styles.tabText}>Basic Info</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "Clinical Data" && styles.activeTab,
-          ]}
+          style={[styles.tabButton, activeTab === "Clinical Data" && styles.activeTab]}
           onPress={() => setActiveTab("Clinical Data")}
         >
           <Text style={styles.tabText}>Clinical Data</Text>
@@ -215,6 +213,7 @@ const PatientDetails = ({ route }) => {
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: "row",
@@ -242,22 +241,17 @@ const styles = StyleSheet.create({
     padding: 5,
     backgroundColor: "transparent",
     marginVertical: 10,
-    height: "auto",
     borderWidth: 2,
-    borderBlockColor: "#444",
   },
   criticalBorder: {
-    borderColor: "#444",
+    borderColor: "#f44336", // Red for Critical
   },
   normalBorder: {
-    borderColor: "#cce5ff",
+    borderColor: "#cce5ff", // Light Blue for normal condition
   },
   photoContainer: {
     width: 160,
-    height: "auto",
     marginRight: 10,
-    borderBlockColor: "#4c4c4c",
-    borderWidth: 1,
   },
   detailsContainer: {
     flex: 1,
@@ -265,8 +259,7 @@ const styles = StyleSheet.create({
   },
   photo: {
     width: "100%",
-    height: undefined,
-    aspectRatio: 1,
+    height: 160,
     borderRadius: 5,
   },
   infoText: {
@@ -282,10 +275,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#e0e0e0",
     paddingVertical: 10,
-    paddingHorizontal: 5,
     justifyContent: "space-between",
     borderRadius: 5,
-    marginBottom: 10,
   },
   headerText: {
     fontWeight: "bold",
@@ -297,8 +288,7 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-    justifyContent: "space-between",
+    borderBottomColor: "#ddd",
     borderRadius: 5,
   },
   dataText: {
@@ -306,62 +296,80 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   addButton: {
-    backgroundColor: "#4CAF50",
-    padding: 10,
+    backgroundColor: "#4caf50",
+    padding: 12,
+    borderRadius: 10,
     alignItems: "center",
-    borderRadius: 5,
-    marginVertical: 20,
+    marginTop: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   addButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
   },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
+    alignItems: "center",
     padding: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalTitle: {
     fontSize: 20,
+    fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
+    color: "#fff",
   },
   input: {
-    borderWidth: 1,
+    backgroundColor: "#fff",
+    padding: 12,
+    marginBottom: 15,
+    borderRadius: 10,
+    width: "100%",
     borderColor: "#ccc",
-    padding: 10,
-    marginVertical: 10,
-    borderRadius: 5,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    color: "#000", // Make sure text color is dark enough
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 20,
+    width: "100%",
   },
   submitButton: {
-    backgroundColor: "#4CAF50",
-    padding: 10,
-    alignItems: "center",
-    borderRadius: 5,
+    backgroundColor: "#4caf50",
+    padding: 12,
+    borderRadius: 10,
     flex: 1,
-    marginRight: 5,
+    marginRight: 10,
+    alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "red",
-    backgroundColor: "red",
-    padding: 10,
-    alignItems: "center",
-    borderRadius: 5,
+    backgroundColor: "#f44336",
+    padding: 12,
+    borderRadius: 10,
     flex: 1,
-    marginLeft: 5,
+    alignItems: "center",
   },
   cancelButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  submitButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
+
 
 export default PatientDetails;
