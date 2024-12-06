@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 import PatientList from './components/PatientList';
 import PatientDetails from './components/PatientDetails';
 import AddPatient from './components/AddPatient';
+import EditPatient from './components/EditPatient';
 
 const Stack = createStackNavigator();
 
@@ -25,6 +26,9 @@ export default function App() {
 
         {/* Add Patient Screen */}
         <Stack.Screen name="AddPatient" component={AddPatient} options={{ title: 'Add Patient' }} />
+
+        <Stack.Screen name="EditPatient" component={EditPatient} />
+        
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>

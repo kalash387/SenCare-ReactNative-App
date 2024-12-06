@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import Icon from 'react-native-vector-icons/Feather';
 
 export default function PatientList({ navigation }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("All");
   const [patientsData, setPatientsData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null); // State to track which patient is being deleted
 
   // Fetch patients data from API
   const fetchPatients = () => {
     setLoading(true);
-    fetch("http://192.168.2.18:3000/patients")
+
+    fetch("https://sencare-cnebb2hzg0crhje9.canadacentral-01.azurewebsites.net/patients")
       .then((response) => response.json())
       .then((data) => {
         setPatientsData(data?.data);
@@ -28,16 +31,23 @@ export default function PatientList({ navigation }) {
   }, []);
 
   const filteredPatients = patientsData
-  .filter(
-    (patient) =>
-      patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (patient.id.toString().includes(searchQuery)) // Convert id to string before calling includes
-  )
-  .filter((patient) => (filter === "All" ? true : patient.condition === filter));
-
+    .filter(
+      (patient) =>
+        patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (patient._id.toString().includes(searchQuery)) // Convert id to string before calling includes
+    )
+    .filter((patient) => (filter === "All" ? true : patient.condition === filter));
 
   const handlePatientPress = (patientId) => {
     navigation.navigate("PatientDetails", { patientId });
+  };
+
+  const handleEditPatient = (patient) => {
+    navigation.navigate("EditPatient", {
+      patientId: patient._id,
+      patientData: patient,
+      onPatientUpdated: fetchPatients,
+    });
   };
 
   const handleAddPatient = () => {
@@ -48,10 +58,30 @@ export default function PatientList({ navigation }) {
     // Optional: Handle search submission behavior if needed (e.g., focus out of the input).
   };
 
+  const handleDeletePatient = (patientId) => {
+    setDeleting(patientId); // Set the deleting state to track which patient is being deleted
+
+    // Call delete API to remove the patient
+    fetch(`https://sencare-cnebb2hzg0crhje9.canadacentral-01.azurewebsites.net/patients/${patientId}`, {
+      method: 'DELETE',
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setDeleting(null); // Reset the deleting state after the deletion completes
+        Alert.alert("Success", "Patient deleted successfully.");
+        fetchPatients();  // Refresh the patient list
+      })
+      .catch((error) => {
+        setDeleting(null); // Reset the deleting state if an error occurs
+        console.error("Error deleting patient:", error);
+        Alert.alert("Error", "There was an issue deleting the patient. Please try again later.");
+      });
+  };
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={styles.loadingContainer}>
+        <Icon name="loader" size={50} color="#007bff" />
       </View>
     );
   }
@@ -94,31 +124,35 @@ export default function PatientList({ navigation }) {
 
       <FlatList
         data={filteredPatients}
-        keyExtractor={(item) => item.id.toString()}  // Ensure a unique key for each item
+        keyExtractor={(item) => item?._id}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[
-              styles.card,
-              item.condition === "Critical" ? styles.criticalCard : styles.normalCard,
-            ]}
-            onPress={() => handlePatientPress(item.id)}
+            style={[styles.card, item.condition === "Critical" ? styles.criticalCard : styles.normalCard]}
+            onPress={() => handlePatientPress(item._id)}
           >
-            <Text
-              style={[
-                styles.cardTitle,
-                item.condition === "Critical" ? styles.criticalText : styles.normalText,
-              ]}
-            >
+            <Text style={[styles.cardTitle, item.condition === "Critical" ? styles.criticalText : styles.normalText]}>
               {item.name}
             </Text>
-            <Text
-              style={[
-                styles.cardCondition,
-                item.condition === "Critical" ? styles.criticalText : styles.normalText,
-              ]}
-            >
+            <Text style={[styles.cardCondition, item.condition === "Critical" ? styles.criticalText : styles.normalText]}>
               {item.condition}
             </Text>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => handleEditPatient(item)}>
+              <Icon name="edit" size={20} color="#fff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDeletePatient(item._id)}
+              disabled={deleting === item._id} // Disable button if deleting this patient
+            >
+              {deleting === item._id ? (
+                <Icon name="loader" size={20} color="#fff" />
+              ) : (
+                <Icon name="trash" size={20} color="#fff" />
+              )}
+            </TouchableOpacity>
           </TouchableOpacity>
         )}
       />
@@ -216,5 +250,41 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     textAlign: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: "#f5f5f5",  // Optional: background color for the loading state
+  },
+  editButton: {
+    position: "absolute",
+    top: 10,
+    left: 10, // Positioning the edit button on the left side
+    padding: 10,
+    backgroundColor: "#007bff", // Blue for visibility
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  deleteButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    padding: 10,
+    backgroundColor: "#ff4136", // Red for delete
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
   },
 });
