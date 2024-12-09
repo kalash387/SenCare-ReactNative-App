@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import Icon from 'react-native-vector-icons/Feather';
+
 
 export default function PatientList({ navigation }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,6 +27,14 @@ export default function PatientList({ navigation }) {
         Alert.alert("Error", "There was an issue fetching the data. Please try again later.");
       });
   };
+
+
+  // Use useFocusEffect to fetch data when the component regains focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchPatients();
+    }, [])
+  );
 
   useEffect(() => {
     fetchPatients();

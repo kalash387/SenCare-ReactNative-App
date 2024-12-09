@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Icon from "react-native-vector-icons/MaterialIcons";
 
 
 // BasicInfo Component
@@ -44,21 +45,42 @@ const BasicInfo = ({ patient }) => (
 );
 
 // ClinicalData Component
-const ClinicalData = ({ patientId }) => {
+const ClinicalData = ({ patientId, patientData, updatePatientCondition }) => {
   const [clinicalData, setClinicalData] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false); // New state to track edit mode
   const [newData, setNewData] = useState({
     date: "",
     type: "",
     value: "",
     condition: "",
+    id: ""
   });
+  const [overallCondition, setOverallCondition] = useState("Normal");
   const [loading, setLoading] = useState(true); // Track loading status
 
+  const testWeights = {
+    "Glucose Level": 0.3,
+    "Heart Rate": 0.2,
+    "Temperature": 0.2,
+    "Respiratory Rate": 0.2,
+    "Oxygen Saturation": 0.1,
+  };
+
+  const testTypes = ["Glucose Level", "Heart Rate", "Temperature", "Respiratory Rate", "Oxygen Saturation"];
+
+
   useEffect(() => {
-    getClinicalData()
+    getClinicalData();
   }, [patientId]);
+
+  useEffect(() => {
+    if (clinicalData.length > 0) {
+      const condition = determineOverallCondition(clinicalData);
+      setOverallCondition(condition);
+    }
+  }, [clinicalData]);
 
   const getClinicalData = () => {
     setLoading(true); // Start loading when fetch begins
@@ -72,9 +94,89 @@ const ClinicalData = ({ patientId }) => {
         console.error("Error fetching clinical data:", error);
         setLoading(false); // Stop loading in case of error
       });
-  }
+  };
 
-  const testTypes = ["Glucose Level", "Heart Rate", "Temperature", "Respiratory Rate", "Oxygen Saturation"];
+  const normalizeTestValue = (testType, value) => {
+    const numericValue = parseFloat(value);
+
+    switch (testType) {
+      case "Glucose Level":
+        return numericValue < 70 || numericValue > 180 ? 1 : 0;
+      case "Heart Rate":
+        return numericValue < 60 || numericValue > 100 ? 1 : 0;
+      case "Temperature":
+        return numericValue < 36.1 || numericValue > 37.5 ? 1 : 0;
+      case "Respiratory Rate":
+        return numericValue < 12 || numericValue > 20 ? 1 : 0;
+      case "Oxygen Saturation":
+        return numericValue < 90 ? 1 : 0;
+      default:
+        return 0;
+    }
+  };
+
+  const calculateWeightedScore = (tests) => {
+    let totalWeight = 0;
+    let weightedSum = 0;
+
+    tests.forEach(({ type, value }) => {
+      const weight = testWeights[type] || 0;
+      const normalizedScore = normalizeTestValue(type, value);
+      weightedSum += normalizedScore * weight;
+      totalWeight += weight;
+    });
+
+    return totalWeight > 0 ? weightedSum / totalWeight : 0;
+  };
+
+  const determineOverallCondition = (tests) => {
+    const weightedScore = calculateWeightedScore(tests);
+    return weightedScore >= 0.5 ? "Critical" : "Normal";
+  };
+
+  const handleEdit = (item) => {
+    setNewData({
+      date: item.date,
+      type: item.type,
+      value: item.value,
+      condition: item.condition,
+      id: item._id
+    });
+    setIsEditMode(true);
+    setModalVisible(true);
+  };
+
+  const confirmDelete = (id) => {
+    Alert.alert(
+      "Delete Confirmation",
+      "Are you sure you want to delete this entry?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            fetch(`https://sencare-cnebb2hzg0crhje9.canadacentral-01.azurewebsites.net/patients/${patientId}/clinical-data/${id}`, {
+              method: "DELETE",
+            })
+              .then((response) => {
+                if (response.ok) {
+                  getClinicalData(); // Refresh the data
+                } else {
+                  throw new Error("Failed to delete the entry.");
+                }
+              })
+              .catch((error) => {
+                console.error("Error deleting clinical data:", error);
+              });
+          },
+        },
+      ]
+    );
+  };
 
   const handleTestTypeChange = (selectedTest) => {
     setNewData((prevState) => ({
@@ -124,10 +226,38 @@ const ClinicalData = ({ patientId }) => {
     }
   };
 
-  const addClinicalData = () => {
+  // const addClinicalData = () => {
+  //   if (newData.date && newData.type && newData.value && newData.condition) {
+  //     fetch(`https://sencare-cnebb2hzg0crhje9.canadacentral-01.azurewebsites.net/patients/${patientId}/clinical-data`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(newData),
+  //     })
+  //       .then((response) => response.json())
+  //       .then((data) => {
+  //         getClinicalData();
+  //         setNewData({ date: "", type: "", value: "", condition: "" });
+  //         setModalVisible(false);
+  //       })
+  //       .catch((error) => console.error("Error adding clinical data:", error));
+  //   } else {
+  //     Alert.alert("Please fill all fields");
+  //   }
+  // };
+
+
+  const submitClinicalData = () => {
     if (newData.date && newData.type && newData.value && newData.condition) {
-      fetch(`https://sencare-cnebb2hzg0crhje9.canadacentral-01.azurewebsites.net/patients/${patientId}/clinical-data`, {
-        method: "POST",
+      const url = isEditMode
+        ? `https://sencare-cnebb2hzg0crhje9.canadacentral-01.azurewebsites.net/patients/${patientId}/clinical-data/${newData.id}`
+        : `https://sencare-cnebb2hzg0crhje9.canadacentral-01.azurewebsites.net/patients/${patientId}/clinical-data`;
+
+      const method = isEditMode ? "PUT" : "POST"; // Change to PUT if editing
+
+      fetch(url, {
+        method: method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -135,15 +265,40 @@ const ClinicalData = ({ patientId }) => {
       })
         .then((response) => response.json())
         .then((data) => {
-          getClinicalData()
+          getClinicalData();
           setNewData({ date: "", type: "", value: "", condition: "" });
           setModalVisible(false);
+          setIsEditMode(false); // Reset mode after submit
         })
-        .catch((error) => console.error("Error adding clinical data:", error));
+        .catch((error) => console.error(isEditMode ? "Error editing clinical data:" : "Error adding clinical data:", error));
     } else {
       Alert.alert("Please fill all fields");
     }
   };
+
+
+  useEffect(() => {
+    // Call editPatient API whenever overallCondition changes
+    if (overallCondition) {
+      fetch(`https://sencare-cnebb2hzg0crhje9.canadacentral-01.azurewebsites.net/patients/${patientId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: patientData.name,
+          condition: overallCondition,
+          contact: patientData.contact,
+          age: patientData.age,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          updatePatientCondition(overallCondition)
+        })
+        .catch((error) => console.error("Error updating patient condition:", error));
+    }
+  }, [overallCondition]);
 
   if (loading) {
     return (
@@ -153,131 +308,132 @@ const ClinicalData = ({ patientId }) => {
     );
   }
 
- return (
-  <View style={styles.clinicalDataContainer}>
-    {/* Check if there is no clinical data */}
-    {clinicalData.length === 0 ? (
-      <View style={styles.noDataContainer}>
-        <Text style={styles.noDataText}>No Clinical Data Found</Text>
-      </View>
-    ) : (
-      <>
-        {/* Only show this if there is clinical data */}
-        <View style={styles.tableHeader}>
-          <Text style={styles.headerText}>Date</Text>
-          <Text style={styles.headerText}>Test Type</Text>
-          <Text style={styles.headerText}>Reading</Text>
-          <Text style={styles.headerText}>Condition</Text>
+
+  return (
+    <View style={styles.clinicalDataContainer}>
+      {clinicalData.length === 0 ? (
+        <View style={styles.noDataContainer}>
+          <Text style={styles.noDataText}>No Clinical Data Found</Text>
         </View>
+      ) : (
+        <>
+          <View style={styles.tableHeader}>
+            <Text style={styles.headerText}>Date</Text>
+            <Text style={styles.headerText}>Test Type</Text>
+            <Text style={styles.headerText}>Reading</Text>
+            <Text style={styles.headerText}>Condition</Text>
+            <Text style={styles.headerText}>Actions</Text>
 
-        {/* Render the data in the FlatList */}
-        <FlatList
-          data={clinicalData}
-          keyExtractor={(item) => item?._id}
-          renderItem={({ item }) => (
-            <View style={styles.dataRow}>
-              <Text style={styles.dataText}>{formatToCustomDate(item.date)}</Text>
-              <Text style={styles.dataText}>{item.type}</Text>
-              <Text style={styles.dataText}>{item.value}</Text>
-              <Text style={styles.dataText}>{item.condition}</Text>
-            </View>
-          )}
-        />
-      </>
-    )}
+          </View>
 
-    <View style={styles.emptyStateContainer}>
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setModalVisible(true)}
+          <FlatList
+            data={clinicalData}
+            keyExtractor={(item) => item?._id}
+            renderItem={({ item }) => (
+              <View style={styles.dataRow}>
+                <Text style={styles.dataText}>{formatToCustomDate(item.date)}</Text>
+                <Text style={styles.dataText}>{item.type}</Text>
+                <Text style={styles.dataText}>{item.value}</Text>
+                <Text style={styles.dataText}>{item.condition}</Text>
+
+
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity onPress={() => handleEdit(item)} style={styles.editButton}>
+                    <Icon name="edit" size={24} color="#007bff" style={styles.icon} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={() => confirmDelete(item._id)} style={styles.deleteButton}>
+                    <Icon name="delete" size={24} color="#dc3545" style={styles.icon} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          />
+        </>
+      )}
+
+      <View style={styles.emptyStateContainer}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setModalVisible(true)}
+        >
+          <Text style={styles.addButtonText}>Add Clinical Data</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
       >
-        <Text style={styles.addButtonText}>Add Clinical Data</Text>
-      </TouchableOpacity>
-    </View>
-
-    <Modal
-      animationType="slide"
-      transparent={false}
-      visible={modalVisible}
-      onRequestClose={() => setModalVisible(false)}
-    >
-      <View style={styles.modalContainer}>
-        <Text style={styles.modalTitle}>Add Clinical Data</Text>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>
+            {isEditMode ? "Edit Clinical Data" : "Add Clinical Data"}
+          </Text>
         <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+            <TextInput
+              placeholder="Date"
+              value={newData.date}
+              style={styles.input}
+              placeholderTextColor="#aaa"
+              editable={false}
+            />
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={newData.date ? new Date(newData.date) : new Date()}
+              mode="date"
+              display="default"
+              onChange={handleDateChange}
+            />
+          )}
+          <Picker
+            selectedValue={newData.type}
+            style={[styles.input, { height: 50 }]}
+            onValueChange={handleTestTypeChange}
+          >
+            {testTypes.map((testType, index) => (
+              <Picker.Item label={testType} value={testType} key={index} />
+            ))}
+          </Picker>
+
           <TextInput
-            placeholder="Date"
-            value={newData.date}
+            placeholder="Reading"
+            value={newData.value}
+            onChangeText={handleValueChange}
+            style={styles.input}
+            placeholderTextColor="#aaa"
+            keyboardType="numeric"
+          />
+          <TextInput
+            placeholder="Condition"
+            value={newData.condition}
             style={styles.input}
             placeholderTextColor="#aaa"
             editable={false}
           />
-        </TouchableOpacity>
-        {showDatePicker && (
-          <DateTimePicker
-            value={newData.date ? new Date(newData.date) : new Date()}
-            mode="date"
-            display="default"
-            onChange={handleDateChange}
-          />
-        )}
-        <Picker
-          selectedValue={newData.type}
-          style={[styles.input, { height: 50 }]}
-          onValueChange={handleTestTypeChange}
-        >
-          {testTypes.map((testType, index) => (
-            <Picker.Item label={testType} value={testType} key={index} />
-          ))}
-        </Picker>
 
-        <TextInput
-          placeholder="Reading"
-          value={newData.value}
-          onChangeText={handleValueChange}
-          style={styles.input}
-          placeholderTextColor="#aaa"
-          keyboardType="numeric"
-        />
-        <TextInput
-          placeholder="Condition"
-          value={newData.condition}
-          style={styles.input}
-          placeholderTextColor="#aaa"
-          editable={false}
-        />
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.submitButton}
-            onPress={addClinicalData}
-          >
-            <Text style={styles.cancelButtonText}>Submit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => setModalVisible(false)}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={submitClinicalData}
+            >
+              <Text style={styles.cancelButtonText}>Submit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </Modal>
-  </View>
-);
+      </Modal>
+    </View>
+  );
 };
 
-
-const formatToCustomDate = (dateString) => {
-  const date = new Date(dateString);
-
-  // Get the day, month, and year
-  const day = String(date.getDate()).padStart(2, '0'); // Add leading zero if necessary
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-based, so add 1
-  const year = date.getFullYear();
-
-  // Return the date in dd-mm-yyyy format
-  return `${day}-${month}-${year}`;
-};
 
 // PatientDetails Component
 const PatientDetails = ({ route }) => {
@@ -300,6 +456,11 @@ const PatientDetails = ({ route }) => {
   }, [patientId]);
 
   const [activeTab, setActiveTab] = useState("Basic Info");
+
+
+  const updatePatientCondition = (newCondition) => {
+    setPatientData((prevState) => ({ ...prevState, condition: newCondition }));
+  };
 
   if (loading) {
     // Display the loading indicator while fetching
@@ -333,15 +494,35 @@ const PatientDetails = ({ route }) => {
             <BasicInfo patient={patientData} />
           </View>
         ) : (
-          <ClinicalData patientId={patientId} />
+          <ClinicalData patientData={patientData}
+            patientId={patientId} updatePatientCondition={updatePatientCondition}
+          />
         )}
       </View>
     </View>
   );
 };
 
+
+const formatToCustomDate = (dateString) => {
+  const date = new Date(dateString);
+
+  // Get the day, month, and year
+  const day = String(date.getDate()).padStart(2, '0'); // Add leading zero if necessary
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-based, so add 1
+  const year = date.getFullYear();
+
+  // Return the date in dd-mm-yyyy format
+  return `${day}-${month}-${year}`;
+};
+
 // Styles
 const styles = StyleSheet.create({
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: 70,
+  },
   tabContainer: {
     flexDirection: "row",
     backgroundColor: "#f8f9fa",
