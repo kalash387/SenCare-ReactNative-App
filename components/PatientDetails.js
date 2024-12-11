@@ -20,26 +20,23 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 const BasicInfo = ({ patient }) => (
   <View
     style={[
-      styles.infoContainer,
-      patient.condition === "Critical"
-        ? styles.criticalBorder
-        : styles.normalBorder,
+      styles.card,
+      patient.condition === "Critical" ? styles.criticalBorder : styles.normalBorder,
     ]}
   >
     <View style={styles.photoContainer}>
-      <Image source={require(`../assets/patient1.png`)} style={styles.photo} />
+      <Image source={require("../assets/patient1.png")} style={styles.photo} />
     </View>
     <View style={styles.detailsContainer}>
-      <Text style={styles.infoText}>Name: {patient.name}</Text>
+      <Text style={styles.nameText}>{patient.name}</Text>
+      <View style={styles.badgeContainer}>
+
+      </View>
       <Text style={styles.infoText}>Age: {patient.age}</Text>
-      <Text
-        style={styles.infoText}
-        numberOfLines={1}
-        ellipsizeMode="tail">
-        ID: {patient._id}
-      </Text>
+      <Text style={styles.infoText}>ID: {patient._id}</Text>
       <Text style={styles.infoText}>Contact: {patient.contact}</Text>
       <Text style={styles.infoText}>Condition: {patient.condition}</Text>
+
     </View>
   </View>
 );
@@ -521,146 +518,151 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: 70,
+    width: 60,
+  },
+  icon: {
+    marginHorizontal: 2, // Minimal spacing between icons
   },
   tabContainer: {
-    flexDirection: "row",
-    backgroundColor: "#f8f9fa",
+    flexDirection: 'row',
+    backgroundColor: '#f8f9fa',
     elevation: 4,
     borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
+    borderBottomColor: '#ccc',
   },
   tabButton: {
     flex: 1,
     paddingVertical: 15,
-    alignItems: "center",
+    alignItems: 'center',
   },
   activeTab: {
     borderBottomWidth: 4,
-    borderBottomColor: "#007bff",
+    borderBottomColor: '#007bff',
   },
   tabText: {
     fontSize: 16,
-    color: "#333",
-    fontWeight: "600",
+    color: '#333',
+    fontWeight: '600',
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: '#f8f9fa',
     paddingTop: 10,
   },
   infoContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 15,
     marginVertical: 15,
     elevation: 5,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#ccc',
   },
   criticalBorder: {
     borderLeftWidth: 6,
-    borderLeftColor: "#f44336", // Red for critical
+    borderLeftColor: '#f44336',
+    borderColor: '#dc3545', // Added from the second set for consistency
   },
   normalBorder: {
     borderLeftWidth: 6,
-    borderLeftColor: "#4caf50", // Green for normal
+    borderLeftColor: '#4caf50',
+    borderColor: '#28a745', // Added from the second set for consistency
   },
   photoContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    overflow: "hidden",
+    overflow: 'hidden',
     marginRight: 15,
   },
   photo: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   detailsContainer: {
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
     flex: 1,
   },
   infoText: {
     fontSize: 16,
-    color: "#333",
+    color: '#333',
   },
   clinicalDataContainer: {
     padding: 10,
   },
   tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#007bff",
+    flexDirection: 'row',
+    backgroundColor: '#007bff',
     padding: 10,
     borderRadius: 10,
     marginBottom: 10,
   },
   headerText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
     flex: 1,
-    textAlign: "center",
+    textAlign: 'center',
   },
   dataRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
+    borderBottomColor: '#ccc',
   },
   dataText: {
     flex: 1,
-    textAlign: "center",
+    textAlign: 'center',
     fontSize: 14,
   },
   addButton: {
     marginTop: 20,
-    backgroundColor: "#28a745",
+    backgroundColor: '#28a745',
     padding: 12,
     borderRadius: 10,
-    alignItems: "center",
+    alignItems: 'center',
   },
   addButtonText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   modalContainer: {
     flex: 1,
     padding: 20,
-    justifyContent: "center",
-    backgroundColor: "#fff",
+    justifyContent: 'center',
+    backgroundColor: '#fff',
   },
   modalTitle: {
     fontSize: 22,
-    fontWeight: "600",
+    fontWeight: '600',
     marginBottom: 20,
-    textAlign: "center",
+    textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#ccc',
     padding: 10,
     marginBottom: 15,
     borderRadius: 8,
     fontSize: 16,
   },
   buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   submitButton: {
-    backgroundColor: "#28a745",
+    backgroundColor: '#28a745',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
     flex: 1,
     marginRight: 10,
   },
@@ -671,30 +673,65 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   activityIndicator: {
-    transform: [{ scale: 2 }],  // Increase the size of the ActivityIndicator
+    transform: [{ scale: 2 }], // Enlarges ActivityIndicator
   },
   cancelButton: {
-    backgroundColor: "#dc3545",
+    backgroundColor: '#dc3545',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
     flex: 1,
   },
   cancelButtonText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   emptyStateContainer: {
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginVertical: 20,
   },
   emptyStateText: {
     fontSize: 18,
-    color: "#666",
+    color: '#666',
     marginBottom: 10,
+  },
+  // New styles from the second set
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 10,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  photoContainerCard: {
+    marginRight: 16,
+  },
+  photoCard: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  nameText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: '#333',
+  },
+  infoTextCard: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 2,
   },
 });
 
